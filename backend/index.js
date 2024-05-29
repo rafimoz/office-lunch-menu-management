@@ -25,12 +25,39 @@ app.get('/choices', (req, res)=> {
   })
 })
 
+app.get('/view', (req, res) => {
+  const { date } = req.query; // Get date from query parameters
+  const sql = "SELECT * FROM choices WHERE date = ?";
+  db.query(sql, [date], (err, data) => {
+    if (err) return res.json(err);
+    return res.json(data);
+  });
+});
+
+app.post('/saveChoice', (req, res) => {
+  const { user_id, user_name, choice_id, choice_date } = req.body;
+  const sql = "INSERT INTO user_choices (user_id, user_name, choice_id, choice_date) VALUES (?, ?, ?, ?)";
+  db.query(sql, [user_id, user_name, choice_id, choice_date], (err, data) => {
+      if (err) return res.json(err);
+      return res.json("Choice Saved");
+  });
+});
+
+app.get('/userChoices', (req, res) => {
+  const sql = "SELECT * FROM user_choices";
+  db.query(sql, (err, data) => {
+      if (err) return res.json(err);
+      return res.json(data);
+  });
+});
+
 app.post('/choices', (req, res)=> {
-  const sql = "INSERT INTO choices (`id`,`employee_name`, `image`) VALUES (?)";
+  const sql = "INSERT INTO choices (`id`,`employee_name`, `image`, `date`) VALUES (?)";
   const values = [
     req.body.id,
     req.body.name,
-    req.body.image
+    req.body.image,
+    req.body.date
   ]
   
   db.query(sql, [values], (err, data)=> {
@@ -49,9 +76,9 @@ app.get('/edit/:id', (req, res)=> {
 })
 
 app.put('/update/:id', (req, res) => {
-  const sql = "UPDATE choices SET `employee_name` = ? Where id = ?";
+  const sql = "UPDATE choices SET `employee_name` = ?, `image` = ? WHERE id = ?";
   const id = req.params.id;
-  db.query(sql,[req.body.name, id], (err, data)=> {
+  db.query(sql,[req.body.name,req.body.image, id], (err, data)=> {
     if (err) return res.json("Error");
     return res.json({updated: true});
   })

@@ -5,7 +5,8 @@ function Addmenu() {
     const [values, setValues] = useState({
         name: '',
         id:'',
-        image: ''
+        image: '',
+        date: ''
     })
 
     const navigate = useNavigate();
@@ -15,7 +16,7 @@ function Addmenu() {
         axios.post('http://localhost:8081/choices', values)
         .then(res => {
             console.log(res);
-            navigate('/');
+            navigate('/admin');
         })
         .catch(err => console.log(err))
     }
@@ -24,18 +25,17 @@ function Addmenu() {
         <div class="p-5">
             <form onSubmit={handleSubmit}>
                 <div class="mb-3">
-                    <label htmlFor="" class="form-label">ID</label>
-                    <input type="text" class="form-control" placeholder='Enter ID' 
-                    onChange={e => setValues({...values, id: e.target.value})}/>
-                </div>
-                <div class="mb-3">
-                    <label htmlFor="" class="form-label">Name</label>
-                    <input type="text" class="form-control" placeholder='Enter Name' 
+                    <label htmlFor="" class="form-label">Menu Name</label>
+                    <input type="text" class="form-control" placeholder='Enter Menu Name' 
                     onChange={e => setValues({...values, name: e.target.value})}/>
                 </div>
                 <div class="mb-3">
                     <label htmlFor="" class="form-label">Image</label>
                     <input type="file" class="form-control form-control-lg" onChange={e => setValues({...values, image: e.target.value})} />
+                </div>
+                <div class="mb-3">
+                    <label htmlFor="" class="form-label">Date</label>
+                    <input type="date" class="form-control form-control-lg" onChange={e => setValues({...values, date: e.target.value})} />
                 </div>
                 <button class="btn btn-primary">Submit</button>
             </form>
