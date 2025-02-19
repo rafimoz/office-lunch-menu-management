@@ -1,98 +1,132 @@
 const express = require('express');
-const mysql = require('mysql');
+const mongoose = require('mongoose');
 const cors = require('cors');
+
 const app = express();
 app.use(cors());
-app.use(express.json())
+app.use(express.json());
 
-const db = mysql.createConnection({
-  host: "Localhost",
-  user: 'root',
-  password: '',
-  database: 'office_lunch_menu'
-})
+// Connect to MongoDB
+mongoose.connect('mongodb+srv://rafimozumder:admin@cluster0.zhqnq.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => console.log("Connected to MongoDB"))
+  .catch(err => console.log(err));
 
+// Define Mongoose Schemas
+const choiceSchema = new mongoose.Schema({
+  id: Number,
+  employee_name: String,
+  image: String,
+  date: String
+});
 
-app.get('/', (re, res)=> {
+const userChoiceSchema = new mongoose.Schema({
+  user_id: Number,
+  user_name: String,
+  choice_id: Number,
+  choice_date: String
+});
+
+// Create Models
+const Choice = mongoose.model('Choice', choiceSchema);
+const UserChoice = mongoose.model('UserChoice', userChoiceSchema);
+
+// Routes
+app.get('/', (req, res) => {
   return res.json("From Backend");
-})
-
-app.get('/choices', (req, res)=> {
-  const sql = "SELECT * FROM choices";
-  db.query(sql, (err, data)=> {
-    if (err) return res.json(err);
-    return res.json(data);
-  })
-})
-
-app.get('/view', (req, res) => {
-  const { date } = req.query; // Get date from query parameters
-  const sql = "SELECT * FROM choices WHERE date = ?";
-  db.query(sql, [date], (err, data) => {
-    if (err) return res.json(err);
-    return res.json(data);
-  });
 });
 
-app.post('/saveChoice', (req, res) => {
-  const { user_id, user_name, choice_id, choice_date } = req.body;
-  const sql = "INSERT INTO user_choices (user_id, user_name, choice_id, choice_date) VALUES (?, ?, ?, ?)";
-  db.query(sql, [user_id, user_name, choice_id, choice_date], (err, data) => {
-      if (err) return res.json(err);
-      return res.json("Choice Saved");
-  });
+// Get all choices
+app.get('/choices', async (req, res) => {
+  try {
+    const choices = await Choice.find();
+    res.json(choices);
+  } catch (err) {
+    res.status(500).json(err);
+  }
 });
 
-app.get('/userChoices', (req, res) => {
-  const sql = "SELECT * FROM user_choices";
-  db.query(sql, (err, data) => {
-      if (err) return res.json(err);
-      return res.json(data);
-  });
+// Get choices by date
+app.get('/view', async (req, res) => {
+  try {
+    const { date } = req.query;
+    const choices = await Choice.find({ date });
+    res.json(choices);
+  } catch (err) {
+    res.status(500).json(err);
+  }
 });
 
-app.post('/choices', (req, res)=> {
-  const sql = "INSERT INTO choices (`id`,`employee_name`, `image`, `date`) VALUES (?)";
-  const values = [
-    req.body.id,
-    req.body.name,
-    req.body.image,
-    req.body.date
-  ]
-  
-  db.query(sql, [values], (err, data)=> {
-    if (err) return res.json(err);
-    return res.json(data);
-  })
-})
+// Save user choice
+app.post('/saveChoice', async (req, res) => {
+  try {
+    const { user_id, user_name, choice_id, choice_date } = req.body;
+    const newUserChoice = new UserChoice({ user_id, user_name, choice_id, choice_date });
+    await newUserChoice.save();
+    res.json("Choice Saved");
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
 
-app.get('/edit/:id', (req, res)=> {
-  const sql = "SELECT * FROM choices Where id = ?";
-  const id = req.params.id;
-  db.query(sql,[id], (err, data)=> {
-    if (err) return res.json(err);
-    return res.json(data);
-  })
-})
+// Get all user choices
+app.get('/userChoices', async (req, res) => {
+  try {
+    const userChoices = await UserChoice.find();
+    res.json(userChoices);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
 
-app.put('/update/:id', (req, res) => {
-  const sql = "UPDATE choices SET `employee_name` = ?, `image` = ? WHERE id = ?";
-  const id = req.params.id;
-  db.query(sql,[req.body.name,req.body.image, id], (err, data)=> {
-    if (err) return res.json("Error");
-    return res.json({updated: true});
-  })
-})
+// Add a new choice
+app.post('/choices', async (req, res) => {
+  try {
+    const { id, name, image, date } = req.body;
+    const newChoice = new Choice({ id, employee_name: name, image, date });
+    await newChoice.save();
+    res.json("Choice Added");
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
 
-app.delete('/delete/:id', (req, res) => {
-  const sql = "DELETE FROM choices WHERE id = ?";
-  const id = req.params.id;
-  db.query(sql,[id], (err, data)=> {
-    if (err) return res.json("Error");
-    return res.json(data);
-  })
-})
+// Get a specific choice by ID
+app.get('/edit/:id', async (req, res) => {
+  try {
+    const choice = await Choice.findOne({ id: req.params.id });
+    res.json(choice);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+// Update a choice
+app.put('/update/:id', async (req, res) => {
+  try {
+    const { name, image } = req.body;
+    await Choice.findOneAndUpdate(
+      { id: req.params.id },
+      { employee_name: name, image },
+      { new: true }
+    );
+    res.json({ updated: true });
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+// Delete a choice
+app.delete('/delete/:id', async (req, res) => {
+  try {
+    await Choice.findOneAndDelete({ id: req.params.id });
+    res.json("Deleted Successfully");
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
 
 app.listen(8081, () => {
-  console.log("Listening");
+  console.log("Listening on port 8081");
 });
